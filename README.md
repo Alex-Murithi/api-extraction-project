@@ -38,6 +38,17 @@ Missing nested values are replaced with:
 `Unknown`
 This prevents KeyError exceptions.
 
-Failure Testing
-Invalid URL
-fetch_users("https://wrong-url.com")
+## Error Handling
+
+The script handles:
+
+- Invalid URLs (connection errors)
+- Request timeouts
+- Non-200 HTTP responses
+- Invalid JSON responses
+
+Each scenario returns a clear error message and exits gracefully without displaying a Python traceback.
+
+## Conclusion
+
+This project demonstrates a complete data engineering workflow, from retrieving data from a REST API to transforming nested JSON into a clean, analytics-ready CSV dataset. By implementing data extraction, JSON flattening, data validation, error handling, and CSV exporting, the project highlights key Python skills used in real-world data pipelines and ETL processes.s
