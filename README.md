@@ -1,43 +1,41 @@
-API Data Extraction and Transformation
-Objective
-Retrieve customer data from a REST API, flatten nested JSON structures and export a clean CSV for analytics.
+# API Data Extraction and Transformation
+
+## Overview
+
+This project retrieves customer records from the JSONPlaceholder Users API, flattens the nested JSON structure, transforms the data into a clean tabular format, and exports it as a CSV file for analytics use.
 
 API Used
 https://jsonplaceholder.typicode.com/users
 
-Features
-Fetch data from REST API using requests
-Validate HTTP status codes
-Handle connection and timeout failures
-Inspect JSON structure
-Extract core customer fields
-Demonstrate:
-Lists
-Tuples
-Dictionaries
-List comprehensions
-Dict comprehensions
-Flatten nested JSON recursively
-Load data into pandas DataFrame
-Export cleaned CSV
-Nested Structure Observed
-address (dict)
+## Features
 
-geo (dict)
-lat
-lng
-company (dict)
+- REST API data extraction with `requests`
+- Response validation and error handling
+- JSON structure analysis
+- List, tuple, and dictionary construction using Python comprehensions
+- Recursive JSON flattening
+- Data transformation with Pandas
+- Clean CSV export
+- Robust handling of network and HTTP failures
 
-name
-catchPhrase
-bs
-Maximum nesting depth: 3 levels.
+## Output
 
-Default Assumptions
+Generated file:
+
+```text
+output/customers_clean.csv
+```
+
+The exported dataset contains:
+
+- Customer details
+- Address information
+- Geographic coordinates
+- Company information
+
+_Default Assumptions_
 Missing nested values are replaced with:
-
-Unknown
-
+`Unknown`
 This prevents KeyError exceptions.
 
 Failure Testing
