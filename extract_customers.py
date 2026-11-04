@@ -3,47 +3,50 @@ Day 1 - API Data Extraction and Transformation
 Squad Python Specialization - Data Engineering
 """
 
-from pathlib import Path
-import sys
+from pathlib import Path # 	Manages file and folder paths
+import sys # Allows the program to exit with an error status
 
-import pandas as pd
-import requests
+import pandas as pd #Structures and exports the data
+import requests # Communicates with the external REST API
 
 API_URL = "https://jsonplaceholder.typicode.com/users"
 OUTPUT_PATH = Path("output") / "customers_clean.csv"
 
 
-def fetch_users(url: str = API_URL, timeout: float = 10.0) -> list[dict]:
-    """
-    Retrieve users from API with proper error handling.
-    """
+def fetch_users(url=API_URL, timeout=10.0):
 
     try:
         response = requests.get(url, timeout=timeout)
 
-        if response.status_code != 200:
-            print(f"Error: API returned status code {response.status_code}")
-            sys.exit(1)
+        response.raise_for_status()
 
-        try:
-            payload = response.json()
-        except ValueError:
-            print("Error: Response body is not valid JSON")
-            sys.exit(1)
+        payload = response.json()
+
+        if not isinstance(payload, list):
+            raise ValueError("Expected a list of users")
 
         return payload
 
-    except requests.exceptions.Timeout:
-        print("Error: Request timed out")
-        sys.exit(1)
+    except requests.exceptions.Timeout as e:
+        raise RuntimeError("API request timed out") from e
 
-    except requests.exceptions.ConnectionError:
-        print("Error: Could not connect to the API")
-        sys.exit(1)
+    except requests.exceptions.ConnectionError as e:
+        raise RuntimeError("Could not connect to API") from e
+
+    except requests.exceptions.HTTPError as e:
+        raise RuntimeError(
+            f"API returned HTTP error: {e}"
+        ) from e
 
     except requests.exceptions.RequestException as e:
-        print(f"Error: Request failed - {e}")
-        sys.exit(1)
+        raise RuntimeError(
+            f"API request failed: {e}"
+        ) from e
+
+    except ValueError as e:
+        raise RuntimeError(
+            f"Invalid API response: {e}"
+        ) from e
 
 
 def describe_structure(payload) -> None:
@@ -91,14 +94,8 @@ def extract_core_fields(users: list[dict]) -> list[dict]:
                 "id": user.get("id"),
                 "name": user.get("name", "Unknown"),
                 "email": user.get("email", "Unknown"),
-                "city": user.get("address", {}).get(
-                    "city",
-                    "Unknown"
-                ),
-                "company": user.get("company", {}).get(
-                    "name",
-                    "Unknown"
-                ),
+                "city": user.get("address", {}).get( "city","Unknown"),
+                "company": user.get("company", {}).get("name","Unknown"),
             }
         )
 
@@ -111,10 +108,10 @@ def build_structures(users: list[dict]) -> tuple[list, list[tuple], dict]:
     """
 
     # List comprehension
-    names = [user.get("name") for user in users]
+    names = [user.get("name") for user in users] # This creates a list containing the names of all users.
 
     # Plain for-loop
-    id_email_pairs = []
+    id_email_pairs = [] # This initializes an empty list to store tuples of user IDs and emails.
 
     for user in users:
         id_email_pairs.append(
@@ -148,7 +145,7 @@ def flatten_user(user: dict, parent_key: str = "", sep: str = "_") -> dict:
             else key
         )
 
-        if isinstance(value, dict):
+        if isinstance(value, dict): # This checks whether the current value is a dictionary, recursively flatten it
             items.update(
                 flatten_user(value, new_key, sep)
             )
@@ -174,7 +171,7 @@ def to_dataframe(flat_users: list[dict]) -> pd.DataFrame:
 
     df["address_geo_lat"] = pd.to_numeric(
         df["address_geo_lat"],
-        errors="coerce"
+        errors="coerce" # if pandas encounters a value it cannot convert, it replaces it with NaN rather than crashing.
     )
 
     df["address_geo_lng"] = pd.to_numeric(
@@ -198,7 +195,7 @@ def to_dataframe(flat_users: list[dict]) -> pd.DataFrame:
         "company_name",
         "company_catchphrase",
         "company_bs",
-    ]
+    ] # This defines the desired order of columns in the final DataFrame.
 
     df = df[column_order]
 
@@ -227,36 +224,52 @@ def export_csv(
 
 
 def main():
+    try:
+        print("\n=== FETCHING CUSTOMER DATA ===")
+        users = fetch_users()
 
-    users = fetch_users()
+        print(f"Successfully retrieved {len(users)} users.")
 
-    print("\n=== STRUCTURE ANALYSIS ===")
-    describe_structure(users)
+        print("\n=== STRUCTURE ANALYSIS ===")
+        describe_structure(users)
 
-    print("\n=== CORE FIELDS ===")
-    core_records = extract_core_fields(users)
+        print("\n=== CORE FIELD EXTRACTION ===")
+        core_records = extract_core_fields(users)
 
-    for record in core_records[:2]:
-        print(record)
+        for record in core_records[:2]:
+            print(record)
 
-    names, email_pairs, city_map = build_structures(users)
+        print("\n=== BUILDING PYTHON DATA STRUCTURES ===")
+        names, email_pairs, city_map = build_structures(users)
 
-    print(f"\nNames count: {len(names)}")
-    print(f"Email pairs count: {len(email_pairs)}")
-    print(f"City mappings count: {len(city_map)}")
+        print(f"Names count: {len(names)}")
+        print(f"Email pairs count: {len(email_pairs)}")
+        print(f"City mappings count: {len(city_map)}")
 
-    flat_users = [
-        flatten_user(user)
-        for user in users
-    ]
+        print("\n=== FLATTENING JSON ===")
+        flat_users = [
+            flatten_user(user)
+            for user in users
+        ]
 
-    df = to_dataframe(flat_users)
+        print(f"Flattened records: {len(flat_users)}")
 
-    output_file = export_csv(df)
+        print("\n=== DATAFRAME TRANSFORMATION ===")
+        df = to_dataframe(flat_users)
 
-    print("\n=== RUN SUMMARY ===")
-    print(f"Users processed: {len(users)}")
-    print(f"CSV exported to: {output_file}")
+        print("\n=== CSV EXPORT ===")
+        output_file = export_csv(df)
+
+        print(f"CSV successfully exported to: {output_file}")
+
+        print("\n=== PIPELINE SUMMARY ===")
+        print(f"Total customers processed: {len(df)}")
+        print(f"Total columns: {len(df.columns)}")
+        print("Pipeline completed successfully.")
+
+    except (RuntimeError, ValueError, OSError) as e:
+        print(f"\nPipeline failed: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
